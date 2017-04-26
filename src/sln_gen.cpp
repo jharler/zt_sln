@@ -252,6 +252,7 @@ bool sln_writeProjectFile(const char *proj_file, SlnProjFileType_Enum type, ztBu
 
 	zt_fiz(proj_configs_cnt) {
 		char *optimization = zt_strCount(proj_configs[i], "Debug") > 0 ? "Disabled" : "MaxSpeed";
+		char *runtime_library = zt_strCount(proj_configs[i], "Debug") > 0 ? "MultiThreadedDebug" : "MultiThreaded";
 
 		zt_fileWritef(&file,
 			"<ItemDefinitionGroup Condition=\"'$(Configuration)|$(Platform)'=='%s'\">\n"
@@ -260,7 +261,7 @@ bool sln_writeProjectFile(const char *proj_file, SlnProjFileType_Enum type, ztBu
 			"    <Optimization>%s</Optimization>\n"
 			"    <SDLCheck>true</SDLCheck>\n"
 			"    <ExceptionHandling>false</ExceptionHandling>\n"
-			"    <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>\n" // !
+			"    <RuntimeLibrary>%s</RuntimeLibrary>\n" // !
 			"    <PreprocessorDefinitions>_MBCS;%%(PreprocessorDefinitions);ZT_BUILD_DESTINATION=\"%s\"</PreprocessorDefinitions>\n"
 			"  </ClCompile>\n"
 			"  <Link>\n"
@@ -269,7 +270,7 @@ bool sln_writeProjectFile(const char *proj_file, SlnProjFileType_Enum type, ztBu
 			"    <OutputFile>$(OutDir)%s$(TargetExt)</OutputFile>\n"
 			"    <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>\n"
 			"  </Link>\n"
-			"</ItemDefinitionGroup>\n", proj_configs[i], optimization, proj_outdir_dbl[i], target_file
+			"</ItemDefinitionGroup>\n", proj_configs[i], optimization, runtime_library, proj_outdir_dbl[i], target_file
 			);
 	}
 
