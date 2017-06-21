@@ -373,11 +373,11 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"#ifndef ZT_NO_DIRECTX\n"
 			"#define ZT_NO_DIRECTX\n"
 			"#endif\n\n"
-			"// --------------------------------------------------------------------------------------------------\n"
+			"// ================================================================================================================================================================================================\n"
 			"// All source files must be included here.\n"
 			"// Remove them from compilation if they are added to the project\n\n"
 			"#include \"" SRC_FILE_GAME_LOADER "\"\n\n\n"
-			"// --------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"#define ZT_TOOLS_IMPLEMENTATION\n"
 			"#include \"zt_tools.h\"\n\n"
 			"#define ZT_GAME_IMPLEMENTATION\n"
@@ -388,7 +388,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 	}
 	else if (zt_strEquals(src_file, "src\\" SRC_FILE_GAME_LOADER)) {
 		zt_fileWritef(&file,
-			"// headers ========================================================================================\n"
+			"// headers ========================================================================================================================================================================================\n"
 			"\n"
 			"#define ZT_GAME_NAME                \"%s\"\n"
 			"#define ZT_GAME_LOCAL_ONLY\n"
@@ -413,7 +413,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 
 		zt_fileWritef(&file,
 			"\n\n"
-			"// types/enums/defines ============================================================================\n"
+			"// types/enums/defines ============================================================================================================================================================================\n"
 			"\n"
 			"#define LDR_DLL_NAME	\"%s.dll\"\n", build_cfg->project_name
 			);
@@ -437,7 +437,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"#endif\n"
 			"\n"
 			"\n"
-			"// structs/classes ================================================================================\n"
+			"// structs/classes ================================================================================================================================================================================\n"
 			"\n"
 			"struct ztDll\n"
 			"{\n"
@@ -460,7 +460,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"};\n"
 			"\n"
 			"\n"
-			"// variables ======================================================================================\n"
+			"// variables ======================================================================================================================================================================================\n"
 			"\n"
 			"ztInternal ztDll g_dll;\n"
 			);
@@ -474,9 +474,9 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 		zt_fileWrite(&file,
 			"\n"
 			"\n"
-			"// private functions ==============================================================================\n"
+			"// private functions ==============================================================================================================================================================================\n"
 			"\n"
-			"// ------------------------------------------------------------------------------------------------\n"
+			"// ================================================================================================================================================================================================\n"
 			"\n"
 			);
 
@@ -488,7 +488,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 				"	zt_fileWrite(&g_log, \"\\n\", 1);\n"
 				"}\n"
 				"\n"
-				"// ------------------------------------------------------------------------------------------------\n"
+				"// ================================================================================================================================================================================================\n"
 				"\n"
 				);
 		}
@@ -519,7 +519,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"#	endif\n"
 			"}\n"
 			"\n"
-			"// ------------------------------------------------------------------------------------------------\n"
+			"// ================================================================================================================================================================================================\n"
 			"\n"
 			"bool ldr_loadDll(const char *dll_name, bool initial_load)\n"
 			"{\n"
@@ -618,7 +618,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"	return true;\n"
 			"}\n"
 			"\n"
-			"// ------------------------------------------------------------------------------------------------\n"
+			"// ================================================================================================================================================================================================\n"
 			"\n"
 			"void ldr_buildDll()\n"
 			"{\n"
@@ -678,7 +678,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"#	endif\n"
 			"}\n"
 			"\n"
-			"// ------------------------------------------------------------------------------------------------\n"
+			"// ================================================================================================================================================================================================\n"
 			"\n"
 			"ZT_FUNCTION_POINTER_REGISTER(ldr_buildDllConsoleCommand, ztInternal ZT_FUNC_DEBUG_CONSOLE_COMMAND(ldr_buildDllConsoleCommand))\n"
 			"{\n"
@@ -686,7 +686,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"}\n"
 			"\n"
 			"\n"
-			"// functions ======================================================================================\n"
+			"// functions ======================================================================================================================================================================================\n"
 			"\n"
 			"bool ldr_gameSettings(ztGameDetails* details, ztGameSettings* settings)\n"
 			"{\n"
@@ -728,7 +728,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"	return true;\n"
 			"}\n"
 			"\n"
-			"// ------------------------------------------------------------------------------------------------\n"
+			"// ================================================================================================================================================================================================\n"
 			"\n"
 			"bool ldr_gameInit(ztGameDetails* details, ztGameSettings* settings)\n"
 			"{\n"
@@ -746,7 +746,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"	return true;\n"
 			"}\n"
 			"\n"
-			"// ------------------------------------------------------------------------------------------------\n"
+			"// ================================================================================================================================================================================================\n"
 			"\n"
 			"void ldr_gameCleanup()\n"
 			"{\n"
@@ -773,7 +773,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"	zt_fileClose(&g_log);\n"
 			"}\n"
 			"\n"
-			"// ------------------------------------------------------------------------------------------------\n"
+			"// ================================================================================================================================================================================================\n"
 			"\n"
 			"void ldr_gameScreenChange(ztGameSettings *settings)\n"
 			"{\n"
@@ -782,7 +782,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"	}\n"
 			"}\n"
 			"\n"
-			"// ------------------------------------------------------------------------------------------------\n"
+			"// ================================================================================================================================================================================================\n"
 			"\n"
 			"bool ldr_gameLoop(r32 dt)\n"
 			"{\n"
@@ -828,7 +828,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"	return g_dll.dll_gameLoop(g_dll.game_memory, dt);\n"
 			"}\n"
 			"\n"
-			"// ------------------------------------------------------------------------------------------------\n"
+			"// ================================================================================================================================================================================================\n"
 			);
 	}
 	else if (zt_strEquals(src_file, "src\\" SRC_FILE_UNITY_DLL)) {
@@ -839,12 +839,13 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"#ifndef ZT_NO_DIRECTX\n"
 			"#define ZT_NO_DIRECTX\n"
 			"#endif\n\n"
-			"// --------------------------------------------------------------------------------------------------\n"
+			"// ================================================================================================================================================================================================\n"
 			"// All source files must be included here.\n"
-			"// Remove them from compilation if they are added to the project\n\n"
+			"// Remove them from compilation if they are added to the project\n"
+			"// After generation, you may need to edit this file to trigger MSVC's file change detection in the included files\n\n"
 			"#include \"" SRC_FILE_GAME_DLL "\"\n"
 			"#include \"" SRC_FILE_GAME_STATE_MAIN "\"\n\n\n"
-			"// --------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"#ifndef ZT_LOADER\n\n"
 			"#define ZT_TOOLS_IMPLEMENTATION\n"
 			"#include \"zt_tools.h\"\n\n"
@@ -860,7 +861,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"#ifndef __game_h__\n"
 			"#define __game_h__\n"
 			"\n"
-			"// headers ========================================================================================\n\n"
+			"// headers ========================================================================================================================================================================================\n\n"
 			"#include \"zt_tools.h\"\n"
 			"#include \"zt_game.h\"\n"
 			);
@@ -875,7 +876,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 		zt_fileWritef(&file,
 			"#include \"game_state.h\"\n"
 			"\n\n"
-			"// types/enums/defines ============================================================================\n\n"
+			"// types/enums/defines ============================================================================================================================================================================\n\n"
 			"enum ReplayState_Enum\n"
 			"{\n"
 			"	ReplayState_None,\n"
@@ -885,7 +886,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"	ReplayState_Paused,\n\n"
 			"	ReplayState_MAX,\n"
 			"};\n\n"
-			"// structs/classes ================================================================================\n\n"
+			"// structs/classes ================================================================================================================================================================================\n\n"
 			"// NOTE: do not assign values in the struct definition\n"
 			"//       can cause problem with the stack when this struct grows large\n\n"
 			"struct ztGame\n"
@@ -932,8 +933,8 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"	ztMemoryArena         *gui_arena;\n"
 			"	ztMemoryArena         *temp_arena;\n"
 			"};\n\n\n"
-			"// external variables =============================================================================\n\n"
-			"// function prototypes ============================================================================\n\n"
+			"// external variables =============================================================================================================================================================================\n\n"
+			"// function prototypes ============================================================================================================================================================================\n\n"
 			);
 
 		if (build_cfg->camera_3d || build_cfg->include_3d_scene) {
@@ -943,7 +944,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 		}
 
 		zt_fileWritef(&file,
-			"// inline functions ===============================================================================\n\n"
+			"// inline functions ===============================================================================================================================================================================\n\n"
 			"#endif // include guard\n"
 			);
 	}
@@ -952,9 +953,9 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"#ifndef __game_state_h__\n"
 			"#define __game_state_h__\n"
 			"\n"
-			"// headers ========================================================================================\n\n"
+			"// headers ========================================================================================================================================================================================\n\n"
 			"#include \"zt_game.h\"\n\n"
-			"// types/enums/defines ============================================================================\n\n"
+			"// types/enums/defines ============================================================================================================================================================================\n\n"
 			"enum GameState_Enum\n"
 			"{\n"
 			"	GameState_Invalid,\n"
@@ -962,9 +963,9 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"	GameState_Main,\n\n"
 			"	GameState_MAX,\n"
 			"};\n\n"
-			"// ------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"struct ztGame;\n\n"
-			"// ------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"#define FUNC_GAME_STATE_BEGIN(name)	    bool name(ztGame *game, GameState_Enum transitioning_from)\n"
 			"typedef FUNC_GAME_STATE_BEGIN(GameStateBegin_Func);\n"
 			"\n"
@@ -976,9 +977,9 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"\n"
 			"#define FUNC_GAME_STATE_RENDER(name)	void name(ztGame *game, ztTextureID final_render_target)\n"
 			"typedef FUNC_GAME_STATE_RENDER(GameStateRender_Func);\n\n"
-			"// ------------------------------------------------------------------------------------------------\n"
-			"// ------------------------------------------------------------------------------------------------\n"
-			"// ------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n"
+			"// ================================================================================================================================================================================================\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"enum GameStateMainLoad_Enum\n"
 			"{\n"
 			"	GameStateMainLoad_Scene,\n\n"
@@ -992,7 +993,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"\n"
 			"	// place variables required for loading here...\n"
 			"};\n\n"
-			"// ------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"struct GameStateMain\n"
 			"{\n"
 			"	ztGame                        *game;\n"
@@ -1009,7 +1010,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 
 		zt_fileWritef(&file,
 			"};\n\n"
-			"// ------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"FUNC_GAME_STATE_BEGIN   (gameStateMainLoadingBegin);\n"
 			"FUNC_GAME_STATE_CLEANUP (gameStateMainLoadingCleanup);\n"
 			"FUNC_GAME_STATE_UPDATE  (gameStateMainLoadingUpdate);\n"
@@ -1024,18 +1025,18 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"// there must be an on_error label that sets the ztLoadState state to error\n"
 			"#define _serialValidate(system, cond, saving)           if(!(cond)) { zt_logCritical(\"serial: %%s : Unable to %%s file(%%d)\", system, ((saving) ? \"write to\" : \"read from\"), __LINE__); goto on_error; }\n"
 			"#define _serialValidateMsg(system, cond, error)         if(!(cond)) { zt_logCritical(\"serial: %%s: %%s (%%d)\", system, error, __LINE__); goto on_error; }\n\n"
-			"// ------------------------------------------------------------------------------------------------\n"
-			"// ------------------------------------------------------------------------------------------------\n"
-			"// ------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n"
+			"// ================================================================================================================================================================================================\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"#endif // include guard\n"
 			);
 	}
 	else if (zt_strEquals(src_file, "src\\" SRC_FILE_GAME_STATE_MAIN)) {
 		zt_fileWritef(&file,
-			"// headers ========================================================================================\n\n"
+			"// headers ========================================================================================================================================================================================\n\n"
 			"#include \"game.h\"\n\n"
-			"// variables ======================================================================================\n\n"
-			"// private functions ==============================================================================\n\n"
+			"// variables ======================================================================================================================================================================================\n\n"
+			"// private functions ==============================================================================================================================================================================\n\n"
 			"ztInternal void _gameStateMainDoLoad(ztGame *game, GameStateMain *gs, int idx)\n"
 			"{\n"
 			"	switch (idx)\n"
@@ -1080,7 +1081,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"		default: zt_assert(false);\n"
 			"	}\n"
 			"}\n\n"
-			"// functions ======================================================================================\n\n"
+			"// functions ======================================================================================================================================================================================\n\n"
 			"FUNC_GAME_STATE_BEGIN(gameStateMainLoadingBegin)\n"
 			"{\n"
 			"	ZT_PROFILE_GAME(\"gameStateMainLoadingBegin\");\n\n"
@@ -1093,13 +1094,13 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"	gs->load.load_idx  = 0;\n\n"
 			"	return true;\n"
 			"}\n\n"
-			"// ------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"FUNC_GAME_STATE_CLEANUP(gameStateMainLoadingCleanup)\n"
 			"{\n"
 			"	GameStateMain *gs = &game->game_state_main;\n"
 			"	// cleanup here\n"
 			"}\n\n"
-			"// ------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"FUNC_GAME_STATE_UPDATE(gameStateMainLoadingUpdate)\n"
 			"{\n"
 			"	ZT_PROFILE_GAME(\"gameStateMainLoadingUpdate\");\n\n"
@@ -1124,7 +1125,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"	}\n\n"
 			"	return true;\n"
 			"}\n\n"
-			"// ------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"FUNC_GAME_STATE_RENDER(gameStateMainLoadingRender)\n"
 			"{\n"
 			"	ZT_PROFILE_GAME(\"gameStateMainLoadingRender\");\n\n"
@@ -1159,84 +1160,127 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"	zt_drawListPopShader(&game->draw_list);\n\n"
 			"	zt_renderDrawList(&game->camera_2d, &game->draw_list, ztColor_White, ztRenderDrawListFlags_NoDepthTest, final_render_target);\n"
 			"}\n\n"
-			"// ================================================================================================\n"
-			"// ================================================================================================\n"
-			"// ================================================================================================\n\n"
+			"// ================================================================================================================================================================================================\n"
+			"// ================================================================================================================================================================================================\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"FUNC_GAME_STATE_BEGIN(gameStateMainBegin)\n"
 			"{\n"
 			"	GameStateMain *gs = &game->game_state_main;\n\n"
 			"	//zt_profilerPause(); // uncomment to profile startup\n\n"
-			"	zt_inputMouseLook(true);\n"
-			"	zt_inputMouseSetCursor(ztInputMouseCursor_None);\n"
+			);
+
+		if (build_cfg->include_3d_scene) {
+			zt_fileWritef(&file,
+				"	zt_inputMouseLook(true);\n"
+				"	zt_inputMouseSetCursor(ztInputMouseCursor_None);\n"
+				);
+		}
+
+		zt_fileWritef(&file,
 			"	return true;\n"
 			"}\n\n"
-			"// ------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"FUNC_GAME_STATE_CLEANUP(gameStateMainCleanup)\n"
 			"{\n"
 			"	GameStateMain *gs = &game->game_state_main;\n\n"
-			"	zt_sceneFreeAllModels(gs->scene);\n"
-			"	zt_sceneFree(gs->scene);\n\n"
-			"	gs->scene = nullptr;\n"
+			);
+
+		if (build_cfg->include_3d_scene) {
+			zt_fileWritef(&file,
+				"	zt_sceneFreeAllModels(gs->scene);\n"
+				"	zt_sceneFree(gs->scene);\n\n"
+				"	gs->scene = nullptr;\n"
+				);
+		}
+
+		zt_fileWritef(&file,
 			"}\n\n"
-			"// ------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"FUNC_GAME_STATE_UPDATE(gameStateMainUpdate)\n"
 			"{\n"
 			"	ZT_PROFILE_GAME(\"gameStateMainUpdate\");\n\n"
 			"	GameStateMain *gs = &game->game_state_main;\n\n"
-			"	if (input_keys[ztInputKeys_Escape].justPressed()) {\n"
-			"		if (zt_inputMouseIsLook()) {\n"
-			"			zt_inputMouseLook(false);\n"
-			"			zt_inputMouseSetCursor(ztInputMouseCursor_Arrow);\n"
-			"		}\n"
-			"		else {\n"
-			"			zt_inputMouseLook(true);\n"
-			"			zt_inputMouseSetCursor(ztInputMouseCursor_None);\n"
-			"		}\n"
-			"	}\n\n"
-			"	if (input_keys[ztInputKeys_Control].pressed() && input_keys[ztInputKeys_Shift].pressed() && input_keys[ztInputKeys_Menu].pressed()) {\n"
-			"		// put special debugging stuff here\n"
-			"	}\n\n"
-			"	if (zt_inputMouseIsLook()) {\n"
-			"		zt_cameraControlUpdateWASD(&gs->camera_controller, input_mouse, input_keys, dt);\n"
-			"	}\n\n"
+			);
+
+		if (build_cfg->include_3d_scene) {
+			zt_fileWritef(&file,
+				"	if (input_keys[ztInputKeys_Escape].justPressed()) {\n"
+				"		if (zt_inputMouseIsLook()) {\n"
+				"			zt_inputMouseLook(false);\n"
+				"			zt_inputMouseSetCursor(ztInputMouseCursor_Arrow);\n"
+				"		}\n"
+				"		else {\n"
+				"			zt_inputMouseLook(true);\n"
+				"			zt_inputMouseSetCursor(ztInputMouseCursor_None);\n"
+				"		}\n"
+				"	}\n\n"
+				"	if (input_keys[ztInputKeys_Control].pressed() && input_keys[ztInputKeys_Shift].pressed() && input_keys[ztInputKeys_Menu].pressed()) {\n"
+				"		// put special debugging stuff here\n"
+				"	}\n\n"
+				"	if (zt_inputMouseIsLook()) {\n"
+				"		zt_cameraControlUpdateWASD(&gs->camera_controller, input_mouse, input_keys, dt);\n"
+				"	}\n\n"
+				);
+		}
+
+		zt_fileWritef(&file,
 			"	return true;\n"
 			"}\n\n"
-			"// ------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"FUNC_GAME_STATE_RENDER(gameStateMainRender)\n"
 			"{\n"
 			"	ZT_PROFILE_GAME(\"gameStateMainRender\");\n\n"
 			"	GameStateMain *gs = &game->game_state_main;\n\n"
-			"	zt_scenePrepare(gs->scene, &game->camera_3d);\n"
-			"	zt_sceneOptimize(gs->scene, &game->camera_3d);\n"
-			"	zt_sceneLighting(gs->scene, &game->camera_3d);\n\n"
-			"	zt_textureRenderTargetPrepare(final_render_target);\n"
-			"	{\n"
-			"		zt_rendererClear(ztVec4(.4f, .4f, .4f, 1));\n"
-			"		zt_rendererSetDepthTest(true, ztRendererDepthTestFunction_LessEqual);\n\n"
-			"		zt_sceneRender(gs->scene, &game->camera_3d);\n\n"
-			"		{\n"
-			"			zt_drawListPushShader(&game->draw_list, zt_shaderGetDefault(ztShaderDefault_Unlit));\n"
-			"			zt_drawListPushTexture(&game->draw_list, ztTextureDefault);\n\n"
-			"			zt_drawListAddAxis(&game->draw_list, .0375f, game->camera_3d.position + game->camera_3d.direction);\n"
-			"			zt_drawListAddFloorGrid(&game->draw_list, ztVec3::zero, 10, 10);\n"
-			"			zt_drawListPopTexture(&game->draw_list);\n"
-			"			zt_drawListPopShader(&game->draw_list);\n\n"
-			"			zt_renderDrawList(&game->camera_3d, &game->draw_list, ztVec4::zero, ztRenderDrawListFlags_NoClear);\n"
-			"		}\n"
-			"	}\n"
-			"	zt_textureRenderTargetCommit(final_render_target);\n"
-			"}\n\n"
-			"// ------------------------------------------------------------------------------------------------\n"
+			);
+
+			if (build_cfg->include_3d_scene) {
+				zt_fileWritef(&file,
+					"	zt_scenePrepare(gs->scene, &game->camera_3d);\n"
+					"	zt_sceneOptimize(gs->scene, &game->camera_3d);\n"
+					"	zt_sceneLighting(gs->scene, &game->camera_3d);\n\n"
+					"	zt_textureRenderTargetPrepare(final_render_target);\n"
+					"	{\n"
+					"		zt_rendererClear(ztVec4(.4f, .4f, .4f, 1));\n"
+					"		zt_rendererSetDepthTest(true, ztRendererDepthTestFunction_LessEqual);\n\n"
+					"		zt_sceneRender(gs->scene, &game->camera_3d);\n\n"
+					"		{\n"
+					"			zt_drawListPushShader(&game->draw_list, zt_shaderGetDefault(ztShaderDefault_Unlit));\n"
+					"			zt_drawListPushTexture(&game->draw_list, ztTextureDefault);\n\n"
+					"			zt_drawListAddAxis(&game->draw_list, .0375f, game->camera_3d.position + game->camera_3d.direction);\n"
+					"			zt_drawListAddFloorGrid(&game->draw_list, ztVec3::zero, 10, 10);\n"
+					"			zt_drawListPopTexture(&game->draw_list);\n"
+					"			zt_drawListPopShader(&game->draw_list);\n\n"
+					"			zt_renderDrawList(&game->camera_3d, &game->draw_list, ztVec4::zero, ztRenderDrawListFlags_NoClear);\n"
+					"		}\n"
+					"	}\n"
+					"	zt_textureRenderTargetCommit(final_render_target);\n"
+					);
+			}
+			else {
+				zt_fileWritef(&file,
+					"	zt_textureRenderTargetPrepare(final_render_target);\n"
+					"	{\n"
+					"		zt_rendererClear(ztVec4(.4f, .4f, .4f, 1));\n"
+					"		// render scene\n"
+					"	}\n"
+					"	zt_textureRenderTargetCommit(final_render_target);\n"
+					);
+
+			}
+
+			zt_fileWritef(&file,
+				"}\n\n"
+				"// ================================================================================================================================================================================================\n"
 			);
 	}
 	else if (zt_strEquals(src_file, "src\\" SRC_FILE_GAME_DLL)) {
 		bool draw_list = build_cfg->camera_2d || build_cfg->include_gui;
 
 		zt_fileWritef(&file,
-			"// headers ========================================================================================\n\n"
+			"// headers ========================================================================================================================================================================================\n\n"
 			"#include \"game.h\"\n\n"
-			"// variables ======================================================================================\n\n"
-			"// private functions ==============================================================================\n\n"
+			"// variables ======================================================================================================================================================================================\n\n"
+			"// private functions ==============================================================================================================================================================================\n\n"
 			"ztInternal void _gameSetFunctionPointers(ztGame *game)\n"
 			"{\n"
 			"	zt_fiz(GameState_MAX) {\n"
@@ -1254,14 +1298,14 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"	game->gsf_update [GameState_Main       ] = gameStateMainUpdate;\n"
 			"	game->gsf_render [GameState_Main       ] = gameStateMainRender;\n"
 			"}\n\n"
-			"// ------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"ztInternal void _gameStateCleanup(ztGame *game)\n"
 			"{\n"
 			"	if (game->gsf_cleanup[game->game_state]) {\n"
 			"		game->gsf_cleanup[game->game_state](game, game->game_state_transition_to);\n"
 			"	}\n"
 			"}\n\n"
-			"// functions ======================================================================================\n\n"
+			"// functions ======================================================================================================================================================================================\n\n"
 			"ZT_DLLEXPORT bool dll_settings(ztGameDetails* details, ztGameSettings* settings)\n"
 			"{\n"
 			"	settings->memory   = zt_megabytes(128);\n"
@@ -1274,7 +1318,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"	}\n"
 			"	return true;\n"
 			"}\n\n"
-			"// ------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"ZT_DLLEXPORT bool dll_init(ztGameDetails* details, ztGameSettings* settings, void** game_memory)\n"
 			"{\n"
 			"	ztGame *game = zt_mallocStruct(ztGame);\n"
@@ -1420,7 +1464,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 		zt_fileWritef(&file,
 			"	return true;\n"
 			"}\n\n"
-			"// ------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"ZT_DLLEXPORT void dll_cleanup(void *memory)\n"
 			"{\n"
 			"	ztGame *game = (ztGame*)memory;\n\n"
@@ -1481,11 +1525,11 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"	zt_memFreeArena(game->asset_arena);\n"
 			"	zt_free(game);\n"
 			"}\n\n"
-			"// ------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"ZT_DLLEXPORT bool dll_reload(void *memory)\n"
 			"{\n"
-			"#	if defined(ZT_DLL)\n"
 			"	ztGame *game = (ztGame*)memory;\n"
+			"#	if defined(ZT_DLL)\n"
 			);
 
 		if (build_cfg->include_gui) {
@@ -1499,7 +1543,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"	_gameSetFunctionPointers(game);\n"
 			"	return true;\n"
 			"}\n\n"
-			"// ------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"ZT_DLLEXPORT bool dll_unload(void *memory)\n"
 			"{\n"
 			"#	if defined(ZT_DLL)\n"
@@ -1520,7 +1564,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 
 		if (build_cfg->camera_3d || build_cfg->include_3d_scene) {
 			zt_fileWritef(&file,
-				"// ------------------------------------------------------------------------------------------------\n\n"
+				"// ================================================================================================================================================================================================\n\n"
 				"void gameAdjustCamera(ztGame *game)\n"
 				"{\n"
 				"	r32 view_distance = 500;\n"
@@ -1531,7 +1575,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 		}
 
 		zt_fileWritef(&file,
-			"// ------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"ZT_DLLEXPORT void dll_screenChange(ztGameSettings *settings, void *memory)\n"
 			"{\n"
 			"	ztGame *game = (ztGame*)memory;\n"
@@ -1551,7 +1595,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 
 		zt_fileWritef(&file,
 			"}\n\n"
-			"// ------------------------------------------------------------------------------------------------\n\n"
+			"// ================================================================================================================================================================================================\n\n"
 			"ZT_DLLEXPORT bool dll_gameLoop(void *memory, r32 dt)\n"
 			"{\n"
 			"	ztGame *game = (ztGame*)memory;\n\n"
@@ -1777,7 +1821,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 		zt_fileWritef(&file, 
 			"	return true;\n"
 			"}\n\n"
-			"// ------------------------------------------------------------------------------------------------\n"
+			"// ================================================================================================================================================================================================\n"
 			);
 			*/
 	}
@@ -2117,6 +2161,16 @@ bool sln_createGitIgnore(ztBuildConfig *build_cfg, const char *proj_dir)
 		"**/x64/[Dd]ebug/\n"
 		"**/x64/[Rr]elease/\n"
 		"local\n"
+		"\n"
+		"**/bin/[Dd]ebug/*\n"
+		"**/bin/[Rr]elease/*\n"
+		"**/[Dd]ebug/*\n"
+		"**/[Rr]elease/*\n"
+		"**/msvc/*.exp\n"
+		"**/msvc/*.lib\n"
+		"**/msvc/*.obj\n"
+		"input_replay*\n"
+		"debug.cfg\n"
 		"\n"
 		"# Visual C++ cache files\n"
 		"*.aps\n"
