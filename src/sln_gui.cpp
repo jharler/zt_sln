@@ -13,7 +13,7 @@ ztInternal void _sln_addControl(const char *label, ztGuiItem *control, ztGuiItem
 
 	ztGuiItem *label_id = zt_guiMakeStaticText(sub_sizer, label);
 	zt_guiItemSetAlign(label_id, ztAlign_Left);
-	zt_guiItemSetSize(label_id, ztVec2(label_min_x, 0));
+	zt_guiItemSetSize(label_id, zt_vec2(label_min_x, 0));
 
 	zt_guiSizerAddItem(sub_sizer, label_id, 0, 1 / zt_pixelsPerUnit());
 	zt_guiSizerAddItem(sub_sizer, control, 1, 1.f / zt_pixelsPerUnit(), ztAlign_Left, grow_direction);
@@ -27,7 +27,7 @@ ztGuiItem *sln_buildConfig(ztBuildConfigGui *config_gui)
 {
 	//zt_guiMakeScrollWindow
 	ztGuiItem *window_id = zt_guiMakeWindow("ZeroTolerance Project Configuration", ztGuiWindowBehaviorFlags_ShowTitle);
-	zt_guiItemSetSize(window_id, ztVec2(8.5f, 8.75f));
+	zt_guiItemSetSize(window_id, zt_vec2(8.5f, 8.75f));
 
 	ztGuiItem *root_sizer = zt_guiMakeSizer(zt_guiWindowGetContentParent(window_id), ztGuiItemOrient_Vert);
 	zt_guiSizerSizeToParent(root_sizer);

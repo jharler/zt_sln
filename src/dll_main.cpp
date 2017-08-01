@@ -177,8 +177,8 @@ ZT_DLLEXPORT void zt_dllScreenChange(ztGameSettings *settings, void *memory)
 	g_game = (ztGame*)memory;
 
 	if (g_game->details->current_frame == 1) {
-		zt_cameraMakePersp(&g_game->camera, settings->screen_w, settings->screen_h, zt_degreesToRadians(60), 0.1f, 100.f, ztVec3(9, 10, 8));
-		zt_cameraMakeOrtho(&g_game->gui_camera, settings->screen_w, settings->screen_h, settings->native_w, settings->native_h, 0.1f, 100.f, ztVec3(0, 0, 0));
+		zt_cameraMakePersp(&g_game->camera, settings->screen_w, settings->screen_h, zt_degreesToRadians(60), 0.1f, 100.f, zt_vec3(9, 10, 8));
+		zt_cameraMakeOrtho(&g_game->gui_camera, settings->screen_w, settings->screen_h, settings->native_w, settings->native_h, 0.1f, 100.f, zt_vec3(0, 0, 0));
 	}
 	else {
 		zt_cameraMakePersp(&g_game->camera, settings->screen_w, settings->screen_h, zt_degreesToRadians(60), 0.1f, 100.f, g_game->camera.position, g_game->camera.rotation);
@@ -237,7 +237,7 @@ ZT_DLLEXPORT bool zt_dllGameLoop(void *memory, r32 dt)
 		sln_build(&config);
 	}
 
-	zt_rendererClear(ztVec4(0, 0, 0, 0));
+	zt_rendererClear(zt_vec4(0, 0, 0, 0));
 
 	{ // draw background
 		ztVec2 cam_size = zt_cameraOrthoGetViewportSize(&g_game->gui_camera);
@@ -246,10 +246,10 @@ ZT_DLLEXPORT bool zt_dllGameLoop(void *memory, r32 dt)
 		zt_drawListPushShader(&g_game->draw_list, zt_shaderGetDefault(ztShaderDefault_Unlit));
 		zt_drawListPushTexture(&g_game->draw_list, g_game->tex_background);
 
-		zt_drawListPushColor(&g_game->draw_list, ztVec4(0, 1, 0, 1));
+		zt_drawListPushColor(&g_game->draw_list, zt_vec4(0, 1, 0, 1));
 
 		ztVec2i tex_size = zt_textureGetSize(g_game->tex_background);
-		ztVec2  tex_size_units(tex_size.x / zt_pixelsPerUnit(), tex_size.y / zt_pixelsPerUnit());
+		ztVec2  tex_size_units = zt_vec2(tex_size.x / zt_pixelsPerUnit(), tex_size.y / zt_pixelsPerUnit());
 
 		int cols = zt_convertToi32Ceil(cam_size.x / tex_size_units.x) + 1;
 		int rows = zt_convertToi32Ceil(cam_size.y / tex_size_units.y) + 1;
@@ -259,7 +259,7 @@ ZT_DLLEXPORT bool zt_dllGameLoop(void *memory, r32 dt)
 
 		zt_fiz(rows) {
 			zt_fjz(cols) {
-				zt_drawListAddFilledRect2D(&g_game->draw_list, ztVec3(cam_min.x + (j * tex_size_units.x), cam_min.y + (i * tex_size_units.y), 0), tex_size_units, ztVec2(0, 0), ztVec2(1, 1));
+				zt_drawListAddFilledRect2D(&g_game->draw_list, zt_vec3(cam_min.x + (j * tex_size_units.x), cam_min.y + (i * tex_size_units.y), 0), tex_size_units, zt_vec2(0, 0), zt_vec2(1, 1));
 			}
 		}
 		zt_drawListPopColor(&g_game->draw_list);
