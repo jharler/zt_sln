@@ -28,7 +28,7 @@ struct ztBuildConfig
 
 // ------------------------------------------------------------------------------------------------
 
-bool sln_build(ztBuildConfig *build_cfg);
+bool sln_build(ztBuildConfig *build_cfg, const char *data_dir);
 
 // ------------------------------------------------------------------------------------------------
 

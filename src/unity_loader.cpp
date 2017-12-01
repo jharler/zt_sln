@@ -1,8 +1,8 @@
 #define ZT_NO_DIRECTX
 #define ZT_OPENGL_DEBUGGING
 
-#ifndef ZT_DLL_LOADER
-#define ZT_DLL_LOADER
+#ifndef ZT_LOADER
+#define ZT_LOADER
 #endif
 
 

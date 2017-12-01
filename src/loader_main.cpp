@@ -300,7 +300,9 @@ bool ldr_gameInit(ztGameDetails* details, ztGameSettings* settings)
 		return false;
 	}
 
-	zt_debugConsoleAddCommand("build", "Compiles the DLL", ldr_buildDllConsoleCommand_FunctionID, ztInvalidID);
+#	if defined(ZT_LOADER)
+	zt_debugConsoleAddCommand("build", "Compiles the DLL", ZT_FUNCTION_POINTER_TO_VAR(ldr_buildDllConsoleCommand), ZT_FUNCTION_POINTER_TO_VAR_NULL);
+#	endif
 
 	return true;
 }

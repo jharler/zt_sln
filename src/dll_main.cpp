@@ -234,7 +234,7 @@ ZT_DLLEXPORT bool zt_dllGameLoop(void *memory, r32 dt)
 		ztBuildConfig config;
 
 		sln_populateConfig(&g_game->gui_config_data, &config);
-		sln_build(&config);
+		sln_build(&config, g_game->details->data_path);
 	}
 
 	zt_rendererClear(zt_vec4(0, 0, 0, 0));
