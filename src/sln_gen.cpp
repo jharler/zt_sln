@@ -1257,8 +1257,6 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 				zt_fileWritef(&file,
 					"						gs->scene = zt_sceneMake(zt_memGetGlobalArena());\n"
 					"						{\n"
-					"							ztShaderPhysicallyBasedRenderingSettings settings = {};\n"
-					"							ztShaderID shader = zt_shaderMakePhysicallyBasedRendering(&settings);\n\n"
 					"							ztMeshID   cube = zt_meshMakePrimitiveBox(1, 1, 1);\n"
 					"							ztMaterial cube_mat = zt_materialMake(ztInvalidID, zt_vec4(1, 1, 1, 1));\n"
 					"							ztModel *cube_model = &gs->models[gs->models_used++];\n"
@@ -2082,7 +2080,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 				"	r32 view_distance = 50;\n"
 				"	zt_cameraMakePersp(&game->camera_3d, game->settings->screen_w, game->settings->screen_h, zt_degreesToRadians(60), 0.1f, view_distance, game->camera_3d.position, game->camera_3d.rotation);\n"
 				"	zt_cameraRecalcMatrices(&game->camera_3d);\n"
-				"	_gameCreateRenderTargets(game, false);\n"
+				"	_gameCreateRenderTargets(game, true);\n"
 				"}\n\n"
 				);
 		}
