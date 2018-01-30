@@ -22,6 +22,7 @@ struct ztBuildConfig
 	bool     camera_2d;
 	bool     camera_3d;
 	bool     include_3d_scene;
+	bool     include_pbr;
 	bool     default_dirs;
 	bool     log_file;
 };

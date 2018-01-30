@@ -703,10 +703,12 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"\n"
 			"// ================================================================================================================================================================================================\n"
 			"\n"
+			"#if defined(ZT_LOADER)\n"
 			"ZT_FUNCTION_POINTER_REGISTER(ldr_buildDllConsoleCommand, ztInternal ZT_FUNC_DEBUG_CONSOLE_COMMAND(ldr_buildDllConsoleCommand))\n"
 			"{\n"
 			"	ldr_buildDll();\n"
 			"}\n"
+			"#endif\n"
 			"\n"
 			"\n"
 			"// functions ======================================================================================================================================================================================\n"
@@ -921,6 +923,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"#include \"game_scene.h\"\n"
 			"\n\n"
 			"// types/enums/defines ============================================================================================================================================================================\n\n"
+			"#if defined(ZT_INPUT_REPLAY)\n"
 			"enum ReplayState_Enum\n"
 			"{\n"
 			"	ReplayState_None,\n"
@@ -929,7 +932,9 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"	ReplayState_Stepping,\n"
 			"	ReplayState_Paused,\n\n"
 			"	ReplayState_MAX,\n"
-			"};\n\n"
+			"};\n"
+			"#endif\n"
+			"\n"
 			"// structs/classes ================================================================================================================================================================================\n\n"
 			"// NOTE: do not assign values in the struct definition\n"
 			"//       can cause problem with the stack when this struct grows large\n\n"
@@ -937,9 +942,11 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"{\n"
 			"	ztGameDetails         *details;\n"
 			"	ztGameSettings        *settings;\n\n"
+			"#	if defined(ZT_INPUT_REPLAY)\n"
 			"	ztInputReplayData      replay_data;\n"
 			"	bool                   replaying;\n"
-			"	ReplayState_Enum       replay_state;\n\n"
+			"	ReplayState_Enum       replay_state;\n"
+			"#	endif\n\n"
 			);
 
 		bool draw_list = false;
@@ -978,11 +985,30 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"	GameSceneUpdate_Func  *gsf_update [GameScene_MAX];\n"
 			"	GameSceneRender_Func  *gsf_render [GameScene_MAX];\n\n"
 			"	ztTextureID            render_target;\n\n"
+			);
+
+		if (build_cfg->include_pbr) {
+			zt_fileWritef(&file,
+				"ztTextureID            render_target_attach_position;\n"
+				"ztTextureID            render_target_attach_normal;\n\n"
+				"ztTextureID            render_target_bright;\n"
+				"ztTextureID            render_target_blurred;\n"
+				"ztTextureID            texture_random;\n"
+				"ztTextureID            render_target_ao;\n\n"
+				"ztShaderID             shader_hdr_tonemap;\n"
+				"ztShaderID             shader_hdr_bright;\n"
+				"ztShaderID             shader_hdr_bloom_blur_1;\n"
+				"ztShaderID             shader_hdr_bloom_blur_2;\n"
+				"ztShaderID             shader_ao;\n\n"
+			);
+		}
+
+		zt_fileWritef(&file,
 			"	r32                    fade_time;\n"
 			"	r32                    fade_time_max;\n\n"
 			"	ztTweenManager         tween_manager_state;\n"
 			"	ztTweenManager         tween_manager_permanent;\n"
-		"};\n\n\n"
+			"};\n\n\n"
 			"// external variables =============================================================================================================================================================================\n\n"
 			"// function prototypes ============================================================================================================================================================================\n\n"
 			);
@@ -1104,7 +1130,11 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 				"\n	ztScene                       *scene;\n"
 				"	ztLight                        scene_light;\n"
 				"	ztCameraControllerFPS          camera_controller;\n"
-				);
+				"	ztModel                        models[128];\n"
+				"	int                            models_used;\n"
+				"	ztLight                        lights[9];\n"
+				"	int                            lights_used;\n"
+			);
 		}
 
 		zt_fileWritef(&file,
@@ -1154,19 +1184,93 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			);
 
 		if (build_cfg->include_3d_scene) {
-			zt_fileWritef(&file,
-				"						gs->scene = zt_sceneMake(zt_memGetGlobalArena());\n"
-				"						{\n"
-				"							ztMeshID   cube = zt_meshMakePrimitiveBox(1, 1, 1);\n"
-				"							ztMaterial cube_mat = zt_materialMake(ztInvalidID, zt_vec4(1, 1, 1, 1));\n"
-				"							ztModel   *cube_model = zt_modelMake(zt_memGetGlobalArena(), cube, &cube_mat, zt_shaderGetDefault(ztShaderDefault_LitShadow), nullptr, ztModelFlags_CastsShadows | ztModelFlags_OwnsMaterials | ztModelFlags_OwnsMesh);\n"
-				"							cube_model->transform.position = zt_vec3(0, .5f, 0);\n"
-				"							zt_sceneAddModel(gs->scene, cube_model);\n"
-				"							gs->scene_light = zt_lightMakeDirectional(zt_vec3(5, 10, 10), ztVec3::zero, 1, 0.25f);\n"
-				"							zt_sceneAddLight(gs->scene, &gs->scene_light);\n"
-				"						}\n"
-				"						gs->camera_controller = zt_cameraControllerMakeFPS(&game->camera_3d);\n"
-				);
+			if (build_cfg->include_pbr) {
+				zt_fileWritef(&file,
+					"						gs->scene = zt_sceneMake(zt_memGetGlobalArena());\n"
+					"						{\n"
+					"							ztShaderPhysicallyBasedRenderingSettings settings = {};\n"
+					"							ztShaderID shader_pbr = zt_shaderMakePhysicallyBasedRendering(&settings);\n\n"
+					"							// environment maps\n"
+					"							{\n"
+					"								ztTextureID tex = zt_textureMakeCubeMapFromHDR(&game->asset_manager, zt_assetLoad(&game->asset_manager, \"textures/environment.hdr\"), 1024, 1024);\n"
+					"								if (tex) {\n"
+					"									gs->scene->tex_irradiance_map = zt_textureMakeIrradianceCubeMapFromCubeMap(tex);\n"
+					"									gs->scene->tex_prefilter_map = zt_textureMakePrefilterCubeMapFromCubeMap(tex);\n\n"
+					"									ztModel *model_skybox = &gs->models[gs->models_used++];\n"
+					"									if (zt_modelMakeSkybox(model_skybox, tex, true)) {\n"
+					"										zt_sceneSetSkybox(gs->scene, model_skybox);\n"
+					"									}\n"
+					"								}\n\n"
+					"								gs->scene->tex_brdf_lut = zt_textureMakeBidirectionalReflectanceDistributionFunctionLUT(512, 512);\n"
+					"							}\n\n"
+					"							// models\n"
+					"							{\n"
+					"								ztMaterial statue_mat = zt_materialMake();\n"
+					"								ztMeshID statue_mesh;\n\n"
+					"								if (zt_meshLoadOBJ(&game->asset_manager, zt_assetLoad(&game->asset_manager, \"models/pbr_test_statue.obj\"), &statue_mesh, &statue_mat, 1, ztVec3::one * .5f) != 1) {\n"
+					"									gs->load.load_info[idx].state = ztLoadState_Error;\n"
+					"									break;\n"
+					"								}\n\n"
+					"								statue_mat = zt_materialMake(\n"
+					"								zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, \"models/pbr_test_statue_albedo.png\"), ztTextureFlags_MipMaps), ztColor_White, ztMaterialFlags_OwnsTexture,\n"
+					"								zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, \"models/pbr_test_statue_metallic.png\"), ztTextureFlags_MipMaps), ztColor_White, ztMaterialFlags_OwnsTexture,\n"
+					"								zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, \"models/pbr_test_statue_normal.png\"), ztTextureFlags_MipMaps), ztMaterialFlags_OwnsTexture,\n"
+					"								zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, \"models/pbr_test_statue_height.png\"), ztTextureFlags_MipMaps), ztMaterialFlags_OwnsTexture,\n"
+					"								zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, \"models/pbr_test_statue_roughness.png\"), ztTextureFlags_MipMaps), ztMaterialFlags_OwnsTexture);\n\n"
+					"								ztModel *statue_model = &gs->models[gs->models_used++];\n"
+					"								zt_modelMakeFromMesh(statue_model, statue_mesh, &statue_mat, shader_pbr, nullptr, ztModelFlags_CastsShadows);\n"
+					"								statue_model->aabb_center = ztVec3::zero;\n"
+					"								statue_model->aabb_size = zt_vec3(1, .1f, 1);\n"
+					"								statue_model->transform.rotation = ztQuat::makeFromEuler(0, 180, 0);\n"
+					"								zt_sceneAddModel(gs->scene, statue_model);\n"
+					"							}\n"
+					"							{\n"
+					"								ztMaterial floor_mat = zt_materialMake();\n"
+					"								ztMeshID floor_panel = zt_meshMakePrimitivePlane(3, 3, 3, 3);\n\n"
+					"								floor_mat = zt_materialMake(\n"
+					"									zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, \"models/floor_panel_albedo.png\"), ztTextureFlags_MipMaps), ztColor_White, ztMaterialFlags_OwnsTexture,\n"
+					"									zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, \"models/floor_panel_metallic.png\"), ztTextureFlags_MipMaps), ztColor_White, ztMaterialFlags_OwnsTexture,\n"
+					"									zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, \"models/floor_panel_normal.png\"), ztTextureFlags_MipMaps), ztMaterialFlags_OwnsTexture,\n"
+					"									zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, \"models/floor_panel_height.png\"), ztTextureFlags_MipMaps), ztMaterialFlags_OwnsTexture,\n"
+					"									zt_textureMake(&game->asset_manager, zt_assetLoad(&game->asset_manager, \"models/floor_panel_roughness.png\"), ztTextureFlags_MipMaps), ztMaterialFlags_OwnsTexture);\n\n"
+					"								ztModel *floor_model = &gs->models[gs->models_used++];\n"
+					"								zt_modelMakeFromMesh(floor_model, floor_panel, &floor_mat, shader_pbr, nullptr, ztModelFlags_OwnsMaterials | ztModelFlags_OwnsMesh);\n"
+					"								floor_model->aabb_center = ztVec3::zero;\n"
+					"								floor_model->aabb_size = zt_vec3(3, .1f, 3);\n"
+					"								floor_model->transform.position.y = .01f;\n"
+					"								zt_sceneAddModel(gs->scene, floor_model);\n"
+					"							}\n\n"
+					"							// lights\n"
+					"							{\n"
+					"								ztLight *light = &gs->lights[gs->lights_used++];\n"
+					"								*light = zt_lightMakeDirectional(zt_vec3(3, 10, 3), ztVec3::zero, 1, 0.25f);\n"
+					"								zt_sceneAddLight(gs->scene, light);\n\n"
+					"								light = &gs->lights[gs->lights_used++];\n"
+					"								*light = zt_lightMakeArea(zt_vec3(-3, 5, -3), 1.f, true, ztColor_Cyan);\n"
+					"								zt_sceneAddLight(gs->scene, light);\n"
+					"							}\n"
+					"						}\n"
+					"						gs->camera_controller = zt_cameraControllerMakeFPS(&game->camera_3d);\n"
+					);
+			}
+			else {
+				zt_fileWritef(&file,
+					"						gs->scene = zt_sceneMake(zt_memGetGlobalArena());\n"
+					"						{\n"
+					"							ztShaderPhysicallyBasedRenderingSettings settings = {};\n"
+					"							ztShaderID shader = zt_shaderMakePhysicallyBasedRendering(&settings);\n\n"
+					"							ztMeshID   cube = zt_meshMakePrimitiveBox(1, 1, 1);\n"
+					"							ztMaterial cube_mat = zt_materialMake(ztInvalidID, zt_vec4(1, 1, 1, 1));\n"
+					"							ztModel *cube_model = &gs->models[gs->models_used++];\n"
+					"							zt_modelMakeFromMesh(cube_model, cube, &cube_mat, zt_shaderGetDefault(ztShaderDefault_LitShadow), nullptr, ztModelFlags_CastsShadows | ztModelFlags_OwnsMaterials | ztModelFlags_OwnsMesh);\n"
+					"							cube_model->transform.position = zt_vec3(0, .5f, 0);\n"
+					"							zt_sceneAddModel(gs->scene, cube_model);\n"
+					"							gs->scene_light = zt_lightMakeDirectional(zt_vec3(5, 10, 10), ztVec3::zero, 1, 0.25f);\n"
+					"							zt_sceneAddLight(gs->scene, &gs->scene_light);\n"
+					"						}\n"
+					"						gs->camera_controller = zt_cameraControllerMakeFPS(&game->camera_3d);\n"
+					);
+			}
 		}
 
 		zt_fileWritef(&file,
@@ -1290,8 +1394,11 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 
 		if (build_cfg->include_3d_scene) {
 			zt_fileWritef(&file,
-				"	zt_sceneFreeAllModels(gs->scene);\n"
 				"	zt_sceneFree(gs->scene);\n\n"
+				"	zt_fiz(gs->models_used) {\n"
+				"		zt_modelFree(&gs->models[i]);\n"
+				"	}\n"
+				"	gs->models_used = 0;\n\n"
 				"	gs->scene = nullptr;\n"
 				);
 		}
@@ -1349,7 +1456,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 				"		{\n"
 				"			zt_drawListPushShader(&game->draw_list, zt_shaderGetDefault(ztShaderDefault_Unlit));\n"
 				"			zt_drawListPushTexture(&game->draw_list, ztTextureDefault);\n\n"
-				"			zt_drawListAddAxis(&game->draw_list, .0375f, game->camera_3d.position + game->camera_3d.direction);\n"
+				"			zt_drawListAddAxis(&game->draw_list, .0075f, game->camera_3d.position + game->camera_3d.direction * .125f);\n"
 				"			zt_drawListAddFloorGrid(&game->draw_list, ztVec3::zero, 10, 10);\n"
 				"			zt_drawListPopTexture(&game->draw_list);\n"
 				"			zt_drawListPopShader(&game->draw_list);\n\n"
@@ -1618,7 +1725,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"// functions ======================================================================================================================================================================================\n\n"
 			"ZT_DLLEXPORT bool dll_settings(ztGameDetails* details, ztGameSettings* settings)\n"
 			"{\n"
-			"	settings->memory   = zt_megabytes(128);\n"
+			"	settings->memory   = zt_megabytes(256);\n"
 			"	settings->native_w = settings->screen_w = 1280;\n"
 			"	settings->native_h = settings->screen_h =  720;\n\n"
 			"	settings->threaded_frame_jobs      = 4;\n"
@@ -1627,6 +1734,46 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"		settings->renderer_flags |= ztRendererFlags_Vsync;\n"
 			"	}\n"
 			"	return true;\n"
+			"}\n\n"
+			"// ================================================================================================================================================================================================\n\n"
+			"ztInternal void _gameCreateRenderTargets(ztGame *game, bool free_first)\n"
+			"{\n"
+			);
+
+		if (build_cfg->include_pbr) {
+			zt_fileWrite(&file,
+				"	if (free_first) {\n"
+				"		if (zt_textureGetSize(game->render_target) == zt_vec2i(game->camera_2d.width, game->camera_2d.height)) {\n"
+				"			return;\n"
+				"		}\n\n"
+				"		zt_textureFree(game->render_target_attach_position);\n"
+				"		zt_textureFree(game->render_target_attach_normal);\n"
+				"		zt_textureFree(game->render_target_bright);\n"
+				"		zt_textureFree(game->render_target_blurred);\n"
+				"		zt_textureFree(game->render_target_ao);\n"
+				"		zt_textureFree(game->render_target);\n"
+				"	}\n\n"
+				"	game->render_target                 = zt_textureMakeRenderTarget(game->settings->native_w, game->settings->native_h, ztTextureFlags_HDR | ztTextureFlags_Multisample);\n"
+				"	game->render_target_attach_position = zt_textureRenderTargetAddAttachment(game->render_target, ztTextureColorFormat_RGBA16F);\n"
+				"	game->render_target_attach_normal   = zt_textureRenderTargetAddAttachment(game->render_target, ztTextureColorFormat_RGBA16F);\n\n"
+				"	game->render_target_bright          = zt_textureMakeRenderTarget(game->settings->native_w / 2, game->settings->native_h / 2, ztTextureFlags_HDR);\n"
+				"	game->render_target_blurred         = zt_textureMakeRenderTarget(game->settings->native_w / 2, game->settings->native_h / 2, ztTextureFlags_HDR);\n"
+				"	game->render_target_ao              = zt_textureMakeRenderTarget(game->settings->native_w / 2, game->settings->native_h / 2);\n"
+				);
+		}
+		else {
+			zt_fileWrite(&file,
+				"	if (free_first) {\n"
+				"		if (zt_textureGetSize(game->render_target) == zt_vec2i(game->camera_2d.width, game->camera_2d.height)) {\n"
+				"			return;\n"
+				"		}\n\n"
+				"		zt_textureFree(game->render_target);\n"
+				"	}\n\n"
+				"	game->render_target = zt_textureMakeRenderTarget(game->settings->native_w, game->settings->native_h, 0);\n"
+				);
+		}
+
+		zt_fileWrite(&file,
 			"}\n\n"
 			"// ================================================================================================================================================================================================\n\n"
 			"ZT_DLLEXPORT bool dll_init(ztGameDetails* details, ztGameSettings* settings, void** game_memory)\n"
@@ -1690,9 +1837,37 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 				"			zt_logCritical(\"Unable to initialize draw list\");\n"
 				"			return false;\n"
 				"		}\n\n"
-				"		game->render_target = zt_textureMakeRenderTarget(settings->native_w, settings->native_h, ztTextureFlags_RenderTargetScreen);\n"
-				"	}\n"
 				);
+
+			if (build_cfg->include_pbr) {
+				zt_fileWritef(&file,
+					"		_gameCreateRenderTargets(game, false);\n\n"
+					"		ztRandom random;\n"
+					"		zt_randomInit(&random);\n"
+					"		game->texture_random = zt_textureMakeRandom(&random, 4, 4);\n\n"
+					"		ztShaderTonemapSettings tonemap_settings = {};\n"
+					"		tonemap_settings.bloom_enabled = true;\n"
+					"		tonemap_settings.ao_enabled = true;\n\n"
+					"		game->shader_hdr_tonemap = zt_shaderBuildTonemap(&tonemap_settings);\n"
+					"		game->shader_hdr_bright = zt_shaderGetDefault(ztShaderDefault_Bright);\n"
+					"		game->shader_hdr_bloom_blur_1 = zt_shaderGetDefault(ztShaderDefault_BlurHorz);\n"
+					"		game->shader_hdr_bloom_blur_2 = zt_shaderGetDefault(ztShaderDefault_BlurVert);\n\n"
+					"		ztShaderAmbientOcclusionSettings ao_settings = {};\n"
+					"		ao_settings.generate_noise_tex = false;\n\n"
+					"		game->shader_ao = zt_shaderBuildAmbientOcclusion(&ao_settings);\n\n"
+					"		if (game->shader_hdr_tonemap == ztInvalidID || game->shader_hdr_bright == ztInvalidID || game->shader_hdr_bloom_blur_1 == ztInvalidID || game->shader_hdr_bloom_blur_2 == ztInvalidID || game->shader_ao == ztInvalidID) {\n"
+					"			return false;\n"
+					"		}\n"
+					"		zt_shaderSetVariableVec2(game->shader_ao, zt_strHash(\"noise_scale\"), zt_vec2(settings->native_w / 4.0f, settings->native_h / 4.0f));\n"
+					"	}\n\n"
+					);
+			}
+			else {
+				zt_fileWritef(&file,
+					"		_gameCreateRenderTargets(game, false);\n"
+					"	}\n"
+					);
+			}
 		}
 
 		zt_fileWritef(&file,
@@ -1704,6 +1879,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"	game->fade_time = game->fade_time_max = 0;\n\n"
 			"	zt_tweenManagerMake(&game->tween_manager_state);\n"
 			"	zt_tweenManagerMake(&game->tween_manager_permanent);\n\n"
+			"#	if defined(ZT_INPUT_REPLAY)\n"
 			"	game->replay_state = ReplayState_None;\n"
 			"	{\n"
 			"		// setup input recording/playback\n\n"
@@ -1753,7 +1929,9 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"			game->replaying = false;\n"
 			"			game->replay_state = ReplayState_Recording;\n"
 			"		}\n"
-			"	}\n\n"
+			"	}\n"
+			"#	endif\n"
+			"\n"
 			);
 
 		/*
@@ -1784,9 +1962,28 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"{\n"
 			"	ztGame *game = (ztGame*)memory;\n\n"
 			"	_gameSceneCleanup(game);\n"
+			"#	if defined(ZT_INPUT_REPLAY)\n"
 			"	zt_inputReplayFree(&game->replay_data);\n"
+			"#	endif\n"
 			"	zt_textureFree(game->render_target);\n\n"
 			);
+
+		if (build_cfg->include_pbr) {
+			zt_fileWritef(&file,
+				"	zt_textureFree(game->render_target_attach_position);\n"
+				"	zt_textureFree(game->render_target_attach_normal);\n"
+				"	zt_textureFree(game->render_target_bright);\n"
+				"	zt_textureFree(game->render_target_blurred);\n"
+				"	zt_textureFree(game->render_target_ao);\n\n"
+				"	zt_textureFree(game->render_target);\n\n"
+				"	zt_textureFree(game->texture_random);\n"
+				"	zt_shaderFree(game->shader_hdr_tonemap);\n"
+				"	zt_shaderFree(game->shader_hdr_bright);\n"
+				"	zt_shaderFree(game->shader_hdr_bloom_blur_1);\n"
+				"	zt_shaderFree(game->shader_hdr_bloom_blur_2);\n"
+				"	zt_shaderFree(game->shader_ao);\n\n"
+				);
+		}
 
 		if (build_cfg->include_vr) {
 			zt_fileWrite(&file,
@@ -1882,9 +2079,10 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 				"// ================================================================================================================================================================================================\n\n"
 				"void gameAdjustCamera(ztGame *game)\n"
 				"{\n"
-				"	r32 view_distance = 500;\n"
+				"	r32 view_distance = 50;\n"
 				"	zt_cameraMakePersp(&game->camera_3d, game->settings->screen_w, game->settings->screen_h, zt_degreesToRadians(60), 0.1f, view_distance, game->camera_3d.position, game->camera_3d.rotation);\n"
 				"	zt_cameraRecalcMatrices(&game->camera_3d);\n"
+				"	_gameCreateRenderTargets(game, false);\n"
 				"}\n\n"
 				);
 		}
@@ -1963,6 +2161,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"				zt_guiDebugToggle();\n"
 			"			}\n"
 			"		}\n"
+			"#		if defined(ZT_INPUT_REPLAY)\n"
 			"		if (game->replay_state == ReplayState_Replaying) {\n"
 			"			if (input_keys[ztInputKeys_Space].justPressed()) {\n"
 			"				game->replay_state = ReplayState_Paused;\n"
@@ -1981,6 +2180,9 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"				game->replaying = false;\n"
 			"				game->replay_state = ReplayState_None;\n"
 			"			}\n"
+			"#		else\n"
+			"		{\n"
+			"#		endif\n"
 			);
 
 		if (build_cfg->include_gui) {
@@ -1996,7 +2198,8 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 				"				}\n"
 				"			}\n"
 				"		}\n"
-				"	}\n\n"
+				"	}\n"
+				"\n"
 				);
 		}
 
@@ -2019,7 +2222,10 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"		}\n"
 			"	}\n\n"
 			"	{\n"
-			"		if (game->replay_state != ReplayState_Paused) {\n"
+			"#		if defined(ZT_INPUT_REPLAY)\n"
+			"		if (game->replay_state != ReplayState_Paused)\n"
+			"#		endif\n"
+			"		{\n"
 			"			ZT_PROFILE_GAME(\"gameLoop:update\");\n"
 			"			if (!game->gsf_update[game->game_scene](game, dt, gui_input, input_this_frame, input_keys, &input_controller, &input_mouse)) {\n"
 			"				return false;\n"
@@ -2032,14 +2238,76 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"		ZT_PROFILE_GAME(\"gameLoop:render state\");\n"
 			"		zt_rendererClear(zt_vec4(0, 0, 0, 0));\n"
 			"		game->gsf_render[game->game_scene](game, game->render_target);\n"
-			"		zt_drawListPushShader(&game->draw_list, zt_shaderGetDefault(ztShaderDefault_Unlit));\n"
-			"		zt_drawListAddScreenRenderTexture(&game->draw_list, game->render_target, &game->camera_2d);\n"
+			);
+
+		if (build_cfg->include_pbr) {
+			zt_fileWritef(&file,
+				"\n"
+				"		// render ambient occlusion\n"
+				"		{\n"
+				"			{\n"
+				"				ZT_PROFILE_GAME(\"gameLoop:ao\");\n"
+				"				static u32 position_tex_hash = zt_strHash(\"position_tex\");\n"
+				"				static u32 normal_tex_hash   = zt_strHash(\"normal_tex\");\n"
+				"				static u32 noise_tex_hash    = zt_strHash(\"noise_tex\");\n"
+				"				static u32 cam_proj_hash     = zt_strHash(\"cam_proj\");\n"
+				"		\n"
+				"				zt_shaderSetVariableTex (game->shader_ao, position_tex_hash, game->render_target_attach_position);\n"
+				"				zt_shaderSetVariableTex (game->shader_ao, normal_tex_hash,   game->render_target_attach_normal);\n"
+				"				zt_shaderSetVariableTex (game->shader_ao, noise_tex_hash,    game->texture_random);\n"
+				"				zt_shaderSetVariableMat4(game->shader_ao, cam_proj_hash,     game->camera_3d.mat_proj);\n"
+				"		\n"
+				"				zt_drawListAddScreenRenderTexture(&game->draw_list, game->render_target, &game->camera_2d, .5f, game->shader_ao);\n"
+				"				zt_renderDrawList(&game->camera_2d, &game->draw_list, ztVec4::zero, ztRenderDrawListFlags_NoDepthTest, game->render_target_bright);\n"
+				"			}\n"
+				"			{\n"
+				"				ZT_PROFILE_GAME(\"gameLoop:ao_blur\");\n"
+				"				static u32 texel_size_hash = zt_strHash(\"texel_size\");\n\n"
+				"				zt_shaderSetVariableFloat(game->shader_hdr_bloom_blur_1, texel_size_hash, 1.f / zt_textureGetSize(game->render_target_bright).x * 1.f);\n"
+				"				zt_shaderSetVariableFloat(game->shader_hdr_bloom_blur_2, texel_size_hash, 1.f / zt_textureGetSize(game->render_target_bright).x * 1.f);\n\n"
+				"				int blur_iters = 2;\n"
+				"				zt_fiz(blur_iters) {\n"
+				"					zt_drawListAddScreenRenderTexture(&game->draw_list, game->render_target_bright, &game->camera_2d, .5f, game->shader_hdr_bloom_blur_1);\n"
+				"					zt_renderDrawList(&game->camera_2d, &game->draw_list, ztVec4::zero, ztRenderDrawListFlags_NoDepthTest, game->render_target_blurred);\n\n"
+				"					zt_drawListAddScreenRenderTexture(&game->draw_list, game->render_target_blurred, &game->camera_2d, .5f, game->shader_hdr_bloom_blur_2);\n"
+				"					zt_renderDrawList(&game->camera_2d, &game->draw_list, ztVec4::zero, ztRenderDrawListFlags_NoDepthTest, i == blur_iters - 1 ? game->render_target_ao : game->render_target_bright);\n"
+				"				}\n"
+				"			}\n"
+				"		}\n"
+				"		// draw the bright areas of the screen for bloom\n"
+				"		{\n"
+				"			ZT_PROFILE_GAME(\"gameLoop:bloom\");\n"
+				"			zt_drawListAddScreenRenderTexture(&game->draw_list, game->render_target, &game->camera_2d, .5f, game->shader_hdr_bright);\n"
+				"			zt_renderDrawList(&game->camera_2d, &game->draw_list, ztVec4::zero, ztRenderDrawListFlags_NoDepthTest, game->render_target_bright);\n\n"
+				"			static u32 texel_size_hash = zt_strHash(\"texel_size\");\n"
+				"			zt_shaderSetVariableFloat(game->shader_hdr_bloom_blur_1, texel_size_hash, 1.f / zt_textureGetSize(game->render_target_bright).x * 1.f);\n"
+				"			zt_shaderSetVariableFloat(game->shader_hdr_bloom_blur_2, texel_size_hash, 1.f / zt_textureGetSize(game->render_target_bright).x * 1.f);\n\n"
+				"			zt_fiz(2) {\n"
+				"				zt_drawListAddScreenRenderTexture(&game->draw_list, game->render_target_bright, &game->camera_2d, .5f, game->shader_hdr_bloom_blur_1);\n"
+				"				zt_renderDrawList(&game->camera_2d, &game->draw_list, ztVec4::zero, ztRenderDrawListFlags_NoDepthTest, game->render_target_blurred);\n\n"
+				"				zt_drawListAddScreenRenderTexture(&game->draw_list, game->render_target_blurred, &game->camera_2d, .5f, game->shader_hdr_bloom_blur_2);\n"
+				"				zt_renderDrawList(&game->camera_2d, &game->draw_list, ztVec4::zero, ztRenderDrawListFlags_NoDepthTest, game->render_target_bright);\n"
+				"			}\n"
+				"		}\n"
+				"		static u32 bloom_tex_hash = zt_strHash(\"bloom_tex\");\n"
+				"		static u32 ao_tex_hash    = zt_strHash(\"ao_tex\");\n\n"
+				"		zt_shaderSetVariableTex  (game->shader_hdr_tonemap, bloom_tex_hash, game->render_target_blurred);\n"
+				"		zt_shaderSetVariableTex  (game->shader_hdr_tonemap, ao_tex_hash,    game->render_target_ao);\n\n"
+				"		zt_drawListAddScreenRenderTexture(&game->draw_list, game->render_target, &game->camera_2d, 1, game->shader_hdr_tonemap);\n\n"
+			);
+		}
+		else {
+			zt_fileWritef(&file,
+				"		zt_drawListAddScreenRenderTexture(&game->draw_list, game->render_target, &game->camera_2d);\n"
+				);
+		}
+
+		zt_fileWritef(&file,
 			"		if (game->fade_time > 0) {\n"
 			"			game->fade_time -= dt;\n"
 			"			if (game->fade_time < 0) {\n"
 			"				game->fade_time = 0;\n"
-			"			}\n"
-			"\n"
+			"			}\n\n"
 			"			r32 alpha = 1;\n"
 			"			r32 fade_time_half = game->fade_time_max / 2.f;\n"
 			"			if (game->fade_time < fade_time_half) {\n"
@@ -2047,13 +2315,12 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"			}\n"
 			"			else {\n"
 			"				alpha = zt_linearRemapAndClamp(game->fade_time, fade_time_half, game->fade_time_max, 1, 0);\n"
-			"			}\n"
-			"\n"
+			"			}\n\n"
+			"			zt_drawListPushShader(&game->draw_list, zt_shaderGetDefault(ztShaderDefault_Unlit));\n"
 			"			zt_drawListAddSolidRect2D(&game->draw_list, ztVec3::zero, zt_vec2(128, 128), zt_color(0, 0, 0, alpha));\n"
-			"		}\n"
-			"\n"
+			"			zt_drawListPopShader(&game->draw_list);\n"
+			"		}\n\n"
 			"		zt_renderDrawList(&game->camera_2d, &game->draw_list, ztVec4::zero, ztRenderDrawListFlags_NoDepthTest);\n"
-			"		zt_drawListPopShader(&game->draw_list);\n\n"
 			"	}\n\n"
 			);
 
@@ -2064,6 +2331,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 				"		zt_drawListPushShader(&game->draw_list, zt_shaderGetDefault(ztShaderDefault_Unlit));\n"
 				"		zt_guiManagerRender(game->gui_manager, &game->draw_list, dt);\n"
 				"		zt_drawListPopShader(&game->draw_list);\n\n"
+				"#		if defined(ZT_INPUT_REPLAY)\n"
 				"		if (game->replaying) {\n"
 				"			ztVec2 mpos = zt_cameraOrthoScreenToWorld(&game->camera_2d, input_mouse.screen_x, input_mouse.screen_y);\n"
 				"			r32 ppu = zt_pixelsPerUnit();\n\n"
@@ -2077,7 +2345,8 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 				"			}\n\n"
 				"			zt_drawListAddText2D(&game->draw_list, ztFontDefault, text, zt_vec2(0, ext.y / -2 + .2f), ztAlign_Center | ztAlign_Bottom, ztAnchor_Center | ztAnchor_Bottom);\n"
 				"			zt_drawListPopShader(&game->draw_list);\n"
-				"		}\n\n"
+				"		}\n"
+				"#		endif\n\n"
 				"		zt_renderDrawList(&game->camera_2d, &game->draw_list, ztVec4::zero, ztRenderDrawListFlags_NoDepthTest | ztRenderDrawListFlags_NoClear);\n"
 				"	}\n"
 				);
@@ -2088,6 +2357,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"		ZT_PROFILE_GAME(\"gameLoop:asset check\");\n"
 			"		zt_assetManagerCheckForChanges(&game->asset_manager);\n"
 			"	}\n\n"
+			"#	if defined(ZT_INPUT_REPLAY)\n"
 			"	{\n"
 			"		if (game->replay_state == ReplayState_Stepping) {\n"
 			"			game->replay_state = ReplayState_Paused;\n"
@@ -2096,6 +2366,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"			game->details->current_frame -= 1;\n"
 			"		}\n"
 			"	}\n"
+			"#	endif\n"
 			"	return true;\n"
 			"}\n\n"
 			);
@@ -4075,22 +4346,37 @@ bool sln_build(ztBuildConfig *build_cfg, const char *data_dir)
 	sln_createSlnFile(build_cfg, proj_dir);
 	sln_createGitIgnore(build_cfg, proj_dir);
 
-	if (build_cfg->include_gui) {
+	struct local_copy
+	{
+		static void copy_files(const char *data_dir, char *proj_dir, char **src, int src_cnt, char **dst)
+		{
+			zt_fiz(src_cnt) {
+				char file_name_src[ztFileMaxPath];
+				zt_fileConcatFileToPath(file_name_src, ztFileMaxPath, data_dir, src[i]);
 
+				char file_name_dst[ztFileMaxPath];
+				zt_fileConcatFileToPath(file_name_dst, ztFileMaxPath, proj_dir, dst[i]);
+
+				if (zt_fileExists(file_name_src)) {
+					zt_fileCopy(file_name_src, file_name_dst);
+				}
+			}
+		}
+	};
+
+
+	if (build_cfg->include_gui) {
 		char *files_src[] = { "textures\\gui.png", "textures\\gui.spr" };
 		char *files_dst[] = { "run\\data\\textures\\gui.png", "run\\data\\textures\\gui.spr" };
 
-		zt_fize(files_src) {
-			char file_name_src[ztFileMaxPath];
-			zt_fileConcatFileToPath(file_name_src, ztFileMaxPath, data_dir, files_src[i]);
+		local_copy::copy_files(data_dir, proj_dir, files_src, zt_elementsOf(files_src), files_dst);
+	}
 
-			char file_name_dst[ztFileMaxPath];
-			zt_fileConcatFileToPath(file_name_dst, ztFileMaxPath, proj_dir, files_dst[i]);
+	if (build_cfg->include_pbr) {
+		char *files_src[] = { "textures\\environment.hdr", "models\\pbr_test_statue.obj", "models\\pbr_test_statue_albedo.png", "models\\pbr_test_statue_height.png", "models\\pbr_test_statue_metallic.png", "models\\pbr_test_statue_normal.png", "models\\pbr_test_statue_roughness.png", "models\\floor_panel_albedo.png", "models\\floor_panel_height.png", "models\\floor_panel_metallic.png", "models\\floor_panel_normal.png", "models\\floor_panel_roughness.png" };
+		char *files_dst[] = { "run\\data\\textures\\environment.hdr", "run\\data\\models\\pbr_test_statue.obj", "run\\data\\models\\pbr_test_statue_albedo.png", "run\\data\\models\\pbr_test_statue_height.png", "run\\data\\models\\pbr_test_statue_metallic.png", "run\\data\\models\\pbr_test_statue_normal.png", "run\\data\\models\\pbr_test_statue_roughness.png", "run\\data\\models\\floor_panel_albedo.png", "run\\data\\models\\floor_panel_height.png", "run\\data\\models\\floor_panel_metallic.png", "run\\data\\models\\floor_panel_normal.png", "run\\data\\models\\floor_panel_roughness.png" };
 
-			if (zt_fileExists(file_name_src)) {
-				zt_fileCopy(file_name_src, file_name_dst);
-			}
-		}
+		local_copy::copy_files(data_dir, proj_dir, files_src, zt_elementsOf(files_src), files_dst);
 	}
 
 	if (build_cfg->dll_project) {

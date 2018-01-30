@@ -264,10 +264,10 @@ ZT_DLLEXPORT bool zt_dllGameLoop(void *memory, r32 dt)
 		}
 		zt_drawListPopColor(&g_game->draw_list);
 		zt_drawListPopTexture(&g_game->draw_list);
-		zt_drawListPopShader(&g_game->draw_list);
 
 		zt_guiManagerRender(g_game->gui_manager, &g_game->draw_list, dt);
 
+		zt_drawListPopShader(&g_game->draw_list);
 		zt_renderDrawList(&g_game->gui_camera, &g_game->draw_list, ztVec4::zero, ztRenderDrawListFlags_NoDepthTest);
 	}
 

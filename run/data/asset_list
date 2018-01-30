@@ -1,0 +1,17 @@
+asset_list
+models/floor_panel_albedo.png
+models/floor_panel_height.png
+models/floor_panel_metallic.png
+models/floor_panel_metallic_solid.png
+models/floor_panel_normal.png
+models/floor_panel_roughness.png
+models/pbr_test_statue.obj
+models/pbr_test_statue_albedo.png
+models/pbr_test_statue_height.png
+models/pbr_test_statue_metallic.png
+models/pbr_test_statue_normal.png
+models/pbr_test_statue_roughness.png
+textures/background.png
+textures/environment.hdr
+textures/gui.png
+textures/gui.spr
