@@ -1188,8 +1188,9 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 				zt_fileWritef(&file,
 					"						gs->scene = zt_sceneMake(zt_memGetGlobalArena());\n"
 					"						{\n"
-					"							ztShaderPhysicallyBasedRenderingSettings settings = {};\n"
-					"							ztShaderID shader_pbr = zt_shaderMakePhysicallyBasedRendering(&settings);\n\n"
+					"							ztShaderStandardSettings settings = {};\n"
+					"							settings.use_pbr = true;\n"
+					"							ztShaderID shader_pbr = zt_shaderMakeStandard(&settings);\n\n"
 					"							// environment maps\n"
 					"							{\n"
 					"								ztTextureID tex = zt_textureMakeCubeMapFromHDR(&game->asset_manager, zt_assetLoad(&game->asset_manager, \"textures/environment.hdr\"), 1024, 1024);\n"
@@ -1446,7 +1447,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 				"	zt_scenePrepare(gs->scene, &game->camera_3d);\n"
 				"	zt_sceneOptimize(gs->scene, &game->camera_3d);\n"
 				"	zt_sceneLighting(gs->scene, &game->camera_3d);\n\n"
-				"	zt_textureRenderTargetPrepare(final_render_target);\n"
+				"	zt_textureRenderTargetPrepare(final_render_target, true);\n"
 				"	{\n"
 				"		zt_rendererClear(zt_vec4(.4f, .4f, .4f, 1));\n"
 				"		zt_rendererSetDepthTest(true, ztRendererDepthTestFunction_LessEqual);\n\n"
@@ -1466,7 +1467,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 		}
 		else {
 			zt_fileWritef(&file,
-				"	zt_textureRenderTargetPrepare(final_render_target);\n"
+				"	zt_textureRenderTargetPrepare(final_render_target, true);\n"
 				"	{\n"
 				"		zt_rendererClear(zt_vec4(.4f, .4f, .4f, 1));\n"
 				"		// render scene\n"
@@ -1627,7 +1628,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"{\n"
 			"	ZT_PROFILE_GAME(\"gameSceneMainRender\");\n\n"
 			"	GameSceneSplash *gs = &game->game_scene_splash;\n\n"
-			"	zt_textureRenderTargetPrepare(final_render_target);\n"
+			"	zt_textureRenderTargetPrepare(final_render_target, true);\n"
 			"	{\n"
 			"		zt_rendererClear(zt_vec4(.4f, .4f, .4f, 1));\n"
 			"		// draw splash screen here\n"
@@ -1666,7 +1667,7 @@ bool sln_createSourceFile(ztBuildConfig *build_cfg, const char *proj_dir, const 
 			"{\n"
 			"	ZT_PROFILE_GAME(\"GameSceneMenuRender\");\n\n"
 			"	GameSceneMenu *gs = &game->game_scene_menu;\n\n"
-			"	zt_textureRenderTargetPrepare(final_render_target);\n"
+			"	zt_textureRenderTargetPrepare(final_render_target, true);\n"
 			"	{\n"
 			"		zt_rendererClear(zt_vec4(.4f, .4f, .4f, 1));\n"
 			"		// render menu\n"
