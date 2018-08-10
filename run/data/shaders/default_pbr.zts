@@ -1,0 +1,436 @@
+//
+//  This shader ignores UVs and instead uses the worldspace x/z positions to determine tex coords
+//
+//  This is useful for tiling floors and ceilings
+//
+//  Note: Uses Roughness/Metallic/Height combined into single map under specular_tex label
+
+
+struct VertexInput
+{
+	vec3  position : 0;
+	vec2  uv : 1;
+	vec3  normal : 2;
+	vec4  color : 3;
+	vec4  tangent : 4;
+	vec4  bitangent : 5;
+}
+
+struct PixelInput
+{
+	vec4 position : position;
+	vec3 frag_pos;
+	vec4 frag_pos_light_space;
+	vec3 normal;
+	vec2 uv;
+	vec4 color;
+	vec4 frag_pos_view;
+	vec3 normal_view;
+}
+
+struct PixelOutput
+{
+	vec4 color : color;
+	vec4 position;
+	vec4 normal;
+}
+
+struct Textures
+{
+	texture2d   diffuse_tex;
+	texture2d   specular_tex;
+	texture2d   normal_tex;
+
+	textureCube irradiance_map_tex;
+	textureCube prefilter_map_tex;
+	texture2d   brdf_lut_tex;
+
+	texture2d   directional_light_shadowmap;
+	textureCube point_lights_shadowmap[4];
+	textureCube spot_lights_shadowmap[4];
+}
+
+struct PointLight
+{
+	vec3  pos;
+	float intensity;
+	vec3  ambient_color;
+	int   shadowmap_use;
+	float far_plane;
+}
+
+struct SpotLight
+{
+	vec3  pos;
+	float intensity;
+	vec3  direction;
+	float cutoff_in;
+	float cutoff_out;
+	vec3  ambient_color;
+	int   shadowmap_use;
+	float far_plane;
+}
+
+struct Uniforms
+{
+	mat4       model;
+	mat4       view;
+	mat4       projection;
+
+	vec3       view_pos;
+
+	mat4       light_matrix;
+	vec3       light_pos;
+	float      light_ambient;
+	float      light_intensity;
+	vec4       light_color;
+
+	PointLight point_lights[4];
+	int        point_lights_count;
+	SpotLight spot_lights[4];
+	int       spot_lights_count;
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+vec3 fresnelSchlick(float cos_theta, vec3 v)
+{
+	return v + (1.0 - v) * pow(1.0 - cos_theta, 3.0);
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+vec3 fresnelSchlickRoughness(float cos_theta, vec3 v, float roughness)
+{
+	return v + (max(vec3(1.0 - roughness), v) - v) * pow(1.0 - cos_theta, 3.0);
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+float distributionGGX(vec3 n, vec3 h, float roughness)
+{
+	float a = roughness * roughness;
+	float a2 = a * a;
+	float n_dot_h = max(dot(n, h), 0.0);
+	float n_dot_h2 = n_dot_h * n_dot_h;
+
+	float nom = a2;
+	float denom = (n_dot_h2 * (a2 - 1.0) + 1.0);
+	denom = 3.14159265359 * denom * denom;
+
+	return nom / denom;
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+float geometrySchlickGGX(float n_dot_v, float roughness)
+{
+	float r = (roughness + 1.0);
+	float k = (r * r) / 8.0;
+
+	float nom = n_dot_v;
+	float denom = n_dot_v * (1.0 - k) + k;
+
+	return nom / denom;
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+float geometrySmith(vec3 n, vec3 v, vec3 l, float roughness)
+{
+	float n_dot_v = max(dot(n, v), 0.0);
+	float n_dot_l = max(dot(n, l), 0.0);
+	float ggx2 = geometrySchlickGGX(n_dot_v, roughness);
+	float ggx1 = geometrySchlickGGX(n_dot_l, roughness);
+
+	return ggx1 * ggx2;
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+vec2 parallaxMapping(vec2 uv, vec3 view_dir, Textures textures)
+{
+	float height = textureSample(textures.specular_tex, uv).b;
+	vec2 p = view_dir.xy * ((1.0 - height) * .0025);
+	return uv - p;
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+vec3 normalCalculation(PixelInput _input, vec2 uv, Textures textures)
+{
+	vec3 tangent_normal = textureSample(textures.normal_tex, uv).xyz;
+	if (tangent_normal == vec3(1)) {
+		tangent_normal = _input.normal;
+		return tangent_normal;
+	}
+	else {
+		tangent_normal = tangent_normal * 2.0 - 1.0;
+	}
+
+	vec3 Q1 = dFdx(_input.position.xyz);
+	vec3 Q2 = dFdy(_input.position.xyz);
+	vec2 st1 = dFdx(uv);
+	vec2 st2 = dFdy(uv);
+
+	vec3 normal = normalize(_input.normal);
+	vec3 T = normalize(Q1*st2.y - Q2*st1.y);
+	vec3 B = -normalize(cross(normal, T));
+	mat3 TBN = mat3(T, B, normal);
+
+	return normalize(TBN * tangent_normal);
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+float shadowCalculation(vec3 light_dir, vec3 normal, PixelInput _input, Textures textures)
+{
+	vec3 proj_coords = _input.frag_pos_light_space.xyz / _input.frag_pos_light_space.w;
+	proj_coords = proj_coords * 0.5 + 0.5;
+	if (proj_coords.x < 0.0 || proj_coords.x > 1.0 || proj_coords.y < 0.0 || proj_coords.y > 1.0) {
+		return 0.0;
+	}
+
+	float current_depth = proj_coords.z;
+	if (current_depth > 1.0 || current_depth < 0.0) {
+		return 0.0;
+	}
+
+	float bias = 0.005;//max(0.005 * (1.0 - dot(normal, light_dir)), 0.005);
+
+	float shadow = 0.0;
+	vec2 texel_size = 1.0 / textureSize(textures.directional_light_shadowmap);// * .5;
+
+	const int samples = 3;
+	for (int x = -samples; x <= samples; ++x) {
+		for (int y = -samples; y <= samples; ++y) {
+			float pcf_depth = textureSample(textures.directional_light_shadowmap, proj_coords.xy + vec2(x, y) * texel_size).r;
+			shadow += (current_depth - bias) > pcf_depth ? 1.0 : 0.0;
+		}
+	}
+	shadow /= (float(samples) * 2.0 + 1.0) * (float(samples) * 2.0 + 1.0);
+	return shadow;
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+float shadowCalculationPointLight(PointLight light, textureCube depth_tex, vec3 normal, PixelInput _input, Textures textures)
+{
+	if (light.shadowmap_use == 0) {
+		return 0;
+	}
+
+	vec3 frag_to_light = (_input.frag_pos - light.pos) * vec3(1, -1, -1);
+	float current_depth = length(frag_to_light);
+
+	float shadow = 0;
+
+	float offset = 0.1;
+	float bias = 0.05;
+
+	int samples = 20;
+	vec3 sample_offset_dir[20] = {
+		vec3(1, 1, 1), vec3(1, -1, 1), vec3(-1, -1, 1), vec3(-1, 1, 1),
+		vec3(1, 1, -1), vec3(1, -1, -1), vec3(-1, -1, -1), vec3(-1, 1, -1),
+		vec3(1, 1, 0), vec3(1, -1, 0), vec3(-1, -1, 0), vec3(-1, 1, 0),
+		vec3(1, 0, 1), vec3(-1, 0, 1), vec3(1, 0, -1), vec3(-1, 0, -1),
+		vec3(0, 1, 1), vec3(0, -1, 1), vec3(0, -1, -1), vec3(0, 1, -1)
+	};
+	float sample_offset_radius = 0.05;
+
+	for (int i = 0; i < samples; ++i) {
+		float closest_depth = textureSample(depth_tex, frag_to_light + sample_offset_dir[i] * sample_offset_radius).r;
+		closest_depth *= light.far_plane;
+
+		if (current_depth - bias > closest_depth) {
+			shadow += 1;
+		}
+	}
+
+	shadow /= float(samples);
+
+	return shadow;
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+float shadowCalculationSpotLight(SpotLight light, textureCube depth_tex, vec3 normal, PixelInput _input, Textures textures)
+{
+	if (light.shadowmap_use == 0) {
+		return 0;
+	}
+
+	vec3 frag_to_light = (_input.frag_pos - light.pos) * vec3(1, -1, -1);
+	float current_depth = length(frag_to_light);
+
+	float shadow = 0;
+
+	float offset = 0.1;
+	float bias = 0.05;
+
+	int samples = 20;
+	vec3 sample_offset_dir[20] = {
+		vec3(1, 1, 1), vec3(1, -1, 1), vec3(-1, -1, 1), vec3(-1, 1, 1),
+		vec3(1, 1, -1), vec3(1, -1, -1), vec3(-1, -1, -1), vec3(-1, 1, -1),
+		vec3(1, 1, 0), vec3(1, -1, 0), vec3(-1, -1, 0), vec3(-1, 1, 0),
+		vec3(1, 0, 1), vec3(-1, 0, 1), vec3(1, 0, -1), vec3(-1, 0, -1),
+		vec3(0, 1, 1), vec3(0, -1, 1), vec3(0, -1, -1), vec3(0, 1, -1)
+	};
+	float sample_offset_radius = 0.05;
+
+	for (int i = 0; i < samples; ++i) {
+		float closest_depth = textureSample(depth_tex, frag_to_light + sample_offset_dir[i] * sample_offset_radius).r;
+		closest_depth *= light.far_plane;
+
+		if (current_depth - bias > closest_depth) {
+			shadow += 1;
+		}
+	}
+
+	shadow /= float(samples);
+
+	return shadow;
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+vec3 calculateLighting(vec3 light_dir, vec3 view_dir, vec3 normal, vec3 f0, vec3 light_pos, vec3 world_pos, vec3 light_color, float light_intensity, float shadow, vec3 albedo, float metallic, float roughness, bool directional)
+{
+	vec3 H = normalize(view_dir + light_dir);
+	vec3 radiance;
+	if (directional) {
+		float distance = 1;//normalize(light_pos);
+		float attenuation = 1.0 / (distance * distance);
+		radiance = light_color * attenuation * (1 - shadow) * light_intensity;
+	}
+	else {
+		float distance = length(light_pos - world_pos);
+		float attenuation = 1.0 / (distance * distance);
+		radiance = light_color * attenuation * (1 - shadow) * light_intensity;
+	}
+
+	float NDF = distributionGGX(normal, H, roughness);
+	float G   = geometrySmith(normal, view_dir, light_dir, roughness);
+	vec3  F   = fresnelSchlick(max(dot(H, view_dir), 0.0), f0);
+
+	vec3  nominator   = NDF * G * F;
+	float denominator = 4 * max(dot(normal, view_dir), 0.0) * max(dot(normal, light_dir), 0.0) + 0.001;
+	vec3  specular    = (nominator / denominator); //* (1 - shadow);
+	
+	vec3 kS = F;
+	vec3 kD = vec3(1.0) - kS;
+	kD *= 1.0 - metallic;
+
+	float NdotL = max(dot(normal, light_dir), 0.0);
+
+	return (kD * albedo / 3.14159265359 + specular) * radiance * NdotL; // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
+}
+// ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+program DefaultLit
+{
+	vertex_shader vertexShader(VertexInput _input : input, Uniforms uniforms : uniforms, PixelInput _output : output)
+	{
+		mat4 model_mat = uniforms.model;
+
+		_output.position             = uniforms.projection * uniforms.view * model_mat * vec4(_input.position, 1.0);
+		_output.frag_pos             = vec3(model_mat * vec4(_input.position, 1.0));
+		_output.normal               = mat3(model_mat) * _input.normal;
+		_output.uv                   = _input.uv;
+		_output.color                = _input.color;
+		_output.frag_pos_light_space = uniforms.light_matrix * vec4(_output.frag_pos, 1.0);
+		_output.frag_pos_view = uniforms.view * model_mat * vec4(_input.position, 1);
+		_output.normal_view = mat3(uniforms.view) * mat3(model_mat) * _input.normal;
+	}
+
+	// ------------------------------------------------------------------------------------------------------------------------------------------------------------
+	// ------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	pixel_shader pixelShader(PixelInput _input : input, Uniforms uniforms : uniforms, Textures textures : textures, PixelOutput _output : output)
+	{
+		vec3 world_pos = _input.frag_pos;
+		vec3 view_dir = normalize(uniforms.view_pos - world_pos);
+		
+		vec3 albedo = pow(textureSample(textures.diffuse_tex, _input.uv).rgb, vec3(2.2));
+		//vec3 albedo = textureSample(textures.diffuse_tex, _input.uv).rgb;
+		float metallic = textureSample(textures.specular_tex, _input.uv).g;
+		float roughness = textureSample(textures.specular_tex, _input.uv).r;
+		float ao = .005;//texture(aoMap, TexCoords).r; // reflectivity is heavily affected by this
+		
+		vec3 normal = normalCalculation(_input, _input.uv, textures);
+		vec3 reflection = reflect(-view_dir, normal);
+
+		vec3 F0 = vec3(0.04);
+		F0 = lerp(F0, albedo, metallic);
+
+		vec3 Lo = vec3(0.0);
+
+		// directional light
+		if (true) {
+			vec3 light_dir = normalize(uniforms.light_pos);
+			//float shadow = min(1 - uniforms.light_ambient, shadowCalculation(light_dir, normal, _input, textures));
+			float shadow = shadowCalculation(light_dir, normal, _input, textures);
+			vec4 light_color = uniforms.light_color;
+			Lo += calculateLighting(light_dir, view_dir, normal, F0, uniforms.light_pos, vec3(0), light_color.rgb, uniforms.light_intensity, shadow, albedo, metallic, roughness, true);
+		}
+
+		if (true) { // point lights
+			for (int i = 0; i < 4; ++i) {
+				if (i >= uniforms.point_lights_count) {
+					break;
+				}
+
+				PointLight light = uniforms.point_lights[i];
+				vec3 light_dir = normalize(light.pos - world_pos);
+				float shadow = shadowCalculationPointLight(light, textures.point_lights_shadowmap[i], normal, _input, textures);
+				Lo += calculateLighting(light_dir, view_dir, normal, F0, light.pos, world_pos, light.ambient_color, light.intensity, shadow, albedo, metallic, roughness, false);
+			}
+		}
+
+		if (true) { // spot lights
+			for (int i = 0; i < 4; ++i) {
+				if (i >= uniforms.spot_lights_count) {
+					break;
+				}
+
+				SpotLight light = uniforms.spot_lights[i];
+				vec3 light_dir = normalize(light.pos - world_pos);
+				float shadow = shadowCalculationSpotLight(light, textures.spot_lights_shadowmap[i], normal, _input, textures);
+				Lo += calculateLighting(light_dir, view_dir, normal, F0, light.pos, world_pos, light.ambient_color, light.intensity, shadow, albedo, metallic, roughness, false);
+			}
+		}
+
+		// ambient lighting (we now use IBL as the ambient term)
+		vec3 F = fresnelSchlickRoughness(max(dot(normal, view_dir), 0.0), F0, roughness);
+
+		vec3 kS = F;
+		vec3 kD = 1.0 - kS;
+		kD *= 1.0 - metallic;
+
+		vec3 irradiance = textureSample(textures.irradiance_map_tex, normal).rgb;
+		vec3 diffuse = irradiance * albedo * uniforms.light_ambient;
+
+		// sample both the pre-filter map and the BRDF lut and combine them together as per the Split-Sum approximation to get the IBL specular part.
+		const float MAX_REFLECTION_LOD = 4.0;
+		vec3 prefilteredColor = textureSampleLOD(textures.prefilter_map_tex, reflection, roughness * MAX_REFLECTION_LOD).rgb;
+		vec2 brdf = textureSample(textures.brdf_lut_tex, vec2(max(dot(normal, view_dir), 0.0), roughness)).xy;
+		vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
+
+		vec3 ambient = (kD * diffuse + specular) * ao;
+
+		vec3 color = ambient + Lo;
+
+		//// HDR tonemapping
+		//color = color / (color + vec3(1.0));
+		//// gamma correct
+		//color = pow(color, vec3(1.0/2.2)); 
+
+
+		_output.color = vec4(color, 1.0);
+		//_output.color = vec4(albedo, 1.0);
+		//_output.color = vec4(fract(world_pos.x), fract(world_pos.z), 0, 1);
+		_output.position = _input.frag_pos_view;
+		_output.normal = vec4(normalize(_input.normal_view), 1);
+	}
+}

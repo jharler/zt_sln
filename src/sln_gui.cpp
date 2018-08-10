@@ -135,6 +135,12 @@ ztGuiItem *sln_buildConfig(ztBuildConfigGui *config_gui)
 			_sln_addControl("Include PBR", checkbox_id, main_sizer, 0);
 		}
 		{
+			ztGuiItem *checkbox_id = zt_guiMakeCheckbox(main_sizer, "(will include 3D scene)", ztGuiCheckboxBehaviorFlags_RightText, &config_gui->include_entity);
+			zt_guiCheckboxSetValue(checkbox_id, true);
+
+			_sln_addControl("Include Entity", checkbox_id, main_sizer, 0);
+		}
+		{
 			ztGuiItem *checkbox_id = zt_guiMakeCheckbox(main_sizer, "", ztGuiCheckboxBehaviorFlags_RightText, &config_gui->include_vr);
 			zt_guiCheckboxSetValue(checkbox_id, false);
 
@@ -198,6 +204,7 @@ void sln_populateConfig(ztBuildConfigGui *config_gui, ztBuildConfig *config)
 	config->camera_3d          = config_gui->camera_3d;
 	config->include_3d_scene   = config_gui->include_3d_scene || config_gui->include_pbr;
 	config->include_pbr        = config_gui->include_pbr;
+	config->include_entity     = config_gui->include_entity;
 	config->default_dirs       = config_gui->default_dirs;
 	config->log_file           = config_gui->log_file;
 }

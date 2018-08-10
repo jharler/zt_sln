@@ -1,4 +1,5 @@
 asset_list
+models/editor.cfg
 models/floor_panel_albedo.png
 models/floor_panel_height.png
 models/floor_panel_metallic.png
@@ -11,7 +12,13 @@ models/pbr_test_statue_height.png
 models/pbr_test_statue_metallic.png
 models/pbr_test_statue_normal.png
 models/pbr_test_statue_roughness.png
+models/testing_scene.ztm
+scenes/test_scene.scene
+shaders/default.zts
+shaders/default_pbr.zts
+shaders/default_pbr_anim.zts
 textures/background.png
 textures/environment.hdr
 textures/gui.png
 textures/gui.spr
+textures/test_grid.albedo.png

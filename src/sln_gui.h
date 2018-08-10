@@ -25,6 +25,7 @@ struct ztBuildConfigGui
 	bool        camera_3d           = true;
 	bool        include_3d_scene    = true;
 	bool        include_pbr         = true;
+	bool        include_entity      = true;
 	bool        default_dirs        = true;
 	bool        log_file            = true;
 
