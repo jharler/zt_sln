@@ -221,14 +221,6 @@ ZT_DLLEXPORT bool zt_dllGameLoop(void *memory, r32 dt)
 
 	bool gui_input = zt_guiManagerHandleInput(g_game->gui_manager, input, input_keystrokes, mouse);
 
-	if (input[ztInputKeys_Tilda].justPressed()) {
-		bool console_shown = false;
-		zt_debugConsoleToggle(&console_shown);
-		if (console_shown) {
-			zt_guiManagerSetKeyboardFocus(g_game->gui_manager);
-		}
-	}
-
 	if (g_game->gui_config_data.generate) {
 		zt_logInfo("Generating project...");
 		ztBuildConfig config;
